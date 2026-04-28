@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap, Popup } from 'react-leaflet'
-import { Layers, ChevronRight, ChevronDown, Info, AlertCircle, Droplets, Target, Shield } from 'lucide-react'
+import { useState } from 'react'
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
+import { Layers, AlertCircle, Droplets, Target, Shield, Square } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './MapView.css'
@@ -15,6 +15,7 @@ const CENTER = [0.34, 32.59]
 const ZOOM = 12
 
 const LAYER_CONFIG = [
+  { id: 'boundary', label: 'Boundary', sublabel: 'Bwaise boundary extent', color: '#94a3b8', icon: Square },
   { id: 'drains', label: 'Infrastructure', sublabel: 'Existing OSM drains', color: '#0ea5e9', icon: Shield },
   { id: 'cvPoints', label: 'Field Evidence', sublabel: 'CV-detected drains', color: '#eab308', icon: Target },
   { id: 'flowAcc', label: 'Hydrology', sublabel: 'Flow accumulation', color: '#6366f1', icon: Droplets },
@@ -67,7 +68,9 @@ function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme }) {
         <TileLayer url={basemapUrl} />
         
         {/* GeoJSON layers remain same logic but with icon tooltips */}
-        <GeoJSON data={boundaryData} style={{ color: '#94a3b8', weight: 1, fillOpacity: 0, dashArray: '4 4' }} />
+        {layerVisibility.boundary && (
+          <GeoJSON data={boundaryData} style={{ color: '#94a3b8', weight: 1, fillOpacity: 0, dashArray: '4 4' }} />
+        )}
         
         {layerVisibility.flowAcc && (
           <GeoJSON 
