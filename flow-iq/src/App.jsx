@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Sun, Moon, Box, Map as MapIcon } from 'lucide-react'
 import MapView from './components/MapView'
 import MapView3D from './components/MapView3D'
@@ -18,6 +18,9 @@ function App() {
     cvPoints: true,
   })
   const [selectedFeature, setSelectedFeature] = useState(null)
+  const [runoffGeoJson, setRunoffGeoJson] = useState(null)
+  const [runoffStats, setRunoffStats] = useState(null)
+  const [isSimulating, setIsSimulating] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -35,6 +38,15 @@ function App() {
     setActivePanel('ai')
   }
 
+  const handleRunoffFrame = useCallback((geoJson, stats) => {
+    setRunoffGeoJson(geoJson)
+    setRunoffStats(stats)
+  }, [])
+
+  const handleSimulationState = useCallback((active) => {
+    setIsSimulating(active)
+  }, [])
+
   return (
     <div className="app">
       <Header 
@@ -50,12 +62,16 @@ function App() {
           layerVisibility={layerVisibility}
           toggleLayer={toggleLayer}
           selectedFeature={selectedFeature}
+          onRunoffFrame={handleRunoffFrame}
+          onSimulationState={handleSimulationState}
         />
         <main className="map-container">
           {is3D ? (
             <MapView3D 
               layerVisibility={layerVisibility}
               onFeatureSelect={handleFeatureSelect}
+              runoffGeoJson={runoffGeoJson}
+              runoffStats={runoffStats}
             />
           ) : (
             <MapView
@@ -63,6 +79,8 @@ function App() {
               toggleLayer={toggleLayer}
               onFeatureSelect={handleFeatureSelect}
               theme={theme}
+              runoffGeoJson={runoffGeoJson}
+              runoffStats={runoffStats}
             />
           )}
         </main>

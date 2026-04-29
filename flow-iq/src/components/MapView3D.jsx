@@ -24,7 +24,7 @@ function DeckGLOverlay(props) {
   return null
 }
 
-function MapView3D({ layerVisibility, onFeatureSelect }) {
+function MapView3D({ layerVisibility, onFeatureSelect, runoffGeoJson, runoffStats }) {
   const layers = [
     // Boundary Outline
     layerVisibility.boundary && new GeoJsonLayer({
@@ -84,7 +84,42 @@ function MapView3D({ layerVisibility, onFeatureSelect }) {
       onClick: info => {
         if (info.object) onFeatureSelect(info.object.properties)
       }
-    })
+    }),
+
+    // Runoff simulation layer - extruded water depth
+    runoffGeoJson && runoffGeoJson.features && runoffGeoJson.features.length > 0 && new GeoJsonLayer({
+      id: 'runoff-3d',
+      data: runoffGeoJson,
+      extruded: true,
+      getElevation: f => {
+        const depth = f.properties.water_depth || 0
+        return Math.max(depth * 0.8, 0.5) // Scale for visibility
+      },
+      getFillColor: f => {
+        const depth = f.properties.water_depth || 0
+        const maxDepth = 30
+        const t = Math.min(depth / maxDepth, 1)
+        // Light cyan to deep blue gradient
+        return [
+          Math.round(20 + (1 - t) * 36),
+          Math.round(100 + (1 - t) * 89),
+          Math.round(220 + (1 - t) * 28),
+          Math.round(100 + t * 155)
+        ]
+      },
+      getLineColor: [56, 189, 248, 60],
+      getLineWidth: 0.5,
+      lineWidthUnits: 'pixels',
+      pickable: true,
+      updateTriggers: {
+        getElevation: [runoffStats?.time],
+        getFillColor: [runoffStats?.time],
+      },
+      transitions: {
+        getElevation: 100,
+        getFillColor: 100,
+      }
+    }),
   ].filter(Boolean)
 
   return (
@@ -122,9 +157,16 @@ function MapView3D({ layerVisibility, onFeatureSelect }) {
       <div className="map-3d-hint">
         Actual 3D DEM (Enhanced) • Use Right Click to Rotate • Scroll to Zoom
       </div>
+
+      {/* Runoff stats overlay */}
+      {runoffStats && (
+        <div className="runoff-3d-badge">
+          <div className="r3d-dot" />
+          <span>Simulating · T={runoffStats.time?.toFixed(0)}min · {runoffStats.excessRainfall?.toFixed(1)}mm excess</span>
+        </div>
+      )}
     </div>
   )
 }
 
 export default MapView3D
-

@@ -1,18 +1,20 @@
-import { AlertTriangle, BarChart3, Bot, Settings2 } from 'lucide-react'
+import { AlertTriangle, BarChart3, Bot, Settings2, CloudRain } from 'lucide-react'
 import RiskPanel from './RiskPanel'
 import SensorPanel from './SensorPanel'
 import AIPanel from './AIPanel'
 import LayerControl from './LayerControl'
+import RunoffPanel from './RunoffPanel'
 import './Sidebar.css'
 
 const NAV_ITEMS = [
   { id: 'risk', label: 'Risk Summary', icon: AlertTriangle },
   { id: 'sensors', label: 'Sensor Network', icon: BarChart3 },
+  { id: 'simulation', label: 'Simulation', icon: CloudRain },
   { id: 'ai', label: 'AI Insights', icon: Bot },
   { id: 'layers', label: 'Layer Settings', icon: Settings2 },
 ]
 
-function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, selectedFeature }) {
+function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, selectedFeature, onRunoffFrame, onSimulationState }) {
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
@@ -37,6 +39,12 @@ function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, se
         <div className="panel-container">
           {activePanel === 'risk' && <RiskPanel selectedFeature={selectedFeature} />}
           {activePanel === 'sensors' && <SensorPanel />}
+          {activePanel === 'simulation' && (
+            <RunoffPanel 
+              onRunoffFrame={onRunoffFrame} 
+              onSimulationState={onSimulationState} 
+            />
+          )}
           {activePanel === 'ai' && <AIPanel selectedFeature={selectedFeature} />}
           {activePanel === 'layers' && (
             <LayerControl layerVisibility={layerVisibility} toggleLayer={toggleLayer} />

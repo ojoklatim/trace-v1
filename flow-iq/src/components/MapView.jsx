@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import { Layers, AlertCircle, Droplets, Target, Shield, Square } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -57,7 +57,64 @@ function LayerTogglePanel({ layers, toggleLayer }) {
   )
 }
 
-function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme }) {
+// Component to render animated runoff overlay
+function RunoffLayer({ data }) {
+  const map = useMap()
+  const layerRef = useRef(null)
+
+  useEffect(() => {
+    if (layerRef.current) {
+      map.removeLayer(layerRef.current)
+      layerRef.current = null
+    }
+
+    if (!data || !data.features || data.features.length === 0) return
+
+    const layer = L.geoJSON(data, {
+      style: (feature) => {
+        const depth = feature.properties.water_depth || 0
+        const maxDepth = 30
+        const intensity = Math.min(depth / maxDepth, 1)
+        const alpha = 0.15 + intensity * 0.65
+        // Gradient: light cyan → deep blue
+        const r = Math.round(10 + (1 - intensity) * 46)
+        const g = Math.round(80 + (1 - intensity) * 120)
+        const b = Math.round(200 + (1 - intensity) * 48)
+        return {
+          fillColor: `rgb(${r},${g},${b})`,
+          fillOpacity: alpha,
+          weight: 0,
+          color: 'transparent',
+        }
+      },
+    })
+
+    layer.addTo(map)
+    layerRef.current = layer
+
+    return () => {
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current)
+        layerRef.current = null
+      }
+    }
+  }, [data, map])
+
+  return null
+}
+
+// Runoff stats badge on the map
+function RunoffBadge({ stats }) {
+  if (!stats) return null
+  return (
+    <div className="runoff-map-badge">
+      <div className="badge-dot" />
+      <span>Runoff: {stats.excessRainfall?.toFixed(1)} mm excess · T={stats.time?.toFixed(0)} min</span>
+    </div>
+  )
+}
+
+function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme, runoffGeoJson, runoffStats }) {
   const basemapUrl = theme === 'dark' 
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
@@ -100,8 +157,12 @@ function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme }) {
             pointToLayer={(f, latlng) => L.circleMarker(latlng, { radius: 5, fillColor: '#eab308', color: '#a16207', weight: 1, fillOpacity: 0.9 })} 
           />
         )}
+
+        {/* Runoff simulation overlay */}
+        <RunoffLayer data={runoffGeoJson} />
       </MapContainer>
       <LayerTogglePanel layers={layerVisibility} toggleLayer={toggleLayer} />
+      <RunoffBadge stats={runoffStats} />
     </div>
   )
 }

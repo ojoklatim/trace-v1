@@ -4,6 +4,30 @@
   gap: 20px;
 }
 
+/* ── Connection Status ── */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font: 500 10px var(--font-mono);
+  width: fit-content;
+}
+
+.status--online {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.status--mock {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* ── Controls ── */
 .sensor-controls {
   display: flex;
   gap: 12px;
@@ -35,8 +59,15 @@
   cursor: not-allowed;
 }
 
+.btn--active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+  border-color: transparent;
+}
+
+/* ── Critical Banner ── */
 .critical-banner {
-  background: var(--severity-critical);
+  background: #ef4444;
   color: white;
   padding: 12px;
   border-radius: var(--radius-sm);
@@ -46,8 +77,10 @@
   gap: 12px;
   font-weight: 700;
   font-size: 12px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* ── Chart ── */
 .chart-card {
   padding: 16px;
   background: var(--bg-secondary);
@@ -75,6 +108,30 @@
   color: var(--text-primary);
 }
 
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.computing-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Sensor Grid ── */
 .sensor-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -89,11 +146,17 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: var(--transition-base);
 }
 
 .mini--critical {
-  border-color: var(--severity-critical);
+  border-color: #ef4444;
   background: rgba(239, 68, 68, 0.05);
+}
+
+.mini--warning {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
 }
 
 .mini-meta {
@@ -104,6 +167,14 @@
 
 .mini-icon {
   color: var(--accent-cyan);
+}
+
+.mini--critical .mini-icon {
+  color: #ef4444;
+}
+
+.mini--warning .mini-icon {
+  color: #f59e0b;
 }
 
 .mini-name {
