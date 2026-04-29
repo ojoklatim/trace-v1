@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CloudRain, RefreshCw, AlertTriangle, Radio, Wifi, WifiOff } from 'lucide-react'
 import {
   BarChart,
@@ -13,30 +13,6 @@ import {
 import './SensorPanel.css'
 
 const API_BASE = '' // Use relative paths for Cloudflare Pages Functions
-
-// Mock sensor data for local development
-const MOCK_SENSORS = [
-  { id: 1, name: 'Bwaise-N1', value: 120, status: 'normal' },
-  { id: 2, name: 'Bwaise-N2', value: 245, status: 'normal' },
-  { id: 3, name: 'Kawaala-W', value: 89, status: 'normal' },
-  { id: 4, name: 'Mulago-S', value: 310, status: 'normal' },
-  { id: 5, name: 'Makerere-E', value: 175, status: 'normal' },
-  { id: 6, name: 'Wandegeya', value: 420, status: 'warning' },
-  { id: 7, name: 'Katanga-C', value: 67, status: 'normal' },
-  { id: 8, name: 'Kivulu-D', value: 198, status: 'normal' },
-]
-
-function generateVariation(baseSensors, spiking = false) {
-  return baseSensors.map(s => {
-    const jitter = (Math.random() - 0.5) * 40
-    let value = Math.max(10, Math.round(s.value + jitter))
-    if (spiking) {
-      value = Math.min(650, Math.round(value + Math.random() * 300))
-    }
-    const status = value > 500 ? 'critical' : value > 350 ? 'warning' : 'normal'
-    return { ...s, value, status }
-  })
-}
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
@@ -57,27 +33,30 @@ function SensorPanel() {
   const [alertActive, setAlertActive] = useState(false)
   const [isSpiking, setIsSpiking] = useState(false)
   const [isOnline, setIsOnline] = useState(false)
-  const baseRef = useRef(MOCK_SENSORS)
+  const [realRain, setRealRain] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const fetchSensors = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/sensors`)
       if (!res.ok) throw new Error('API unavailable')
       const data = await res.json()
-      setSensors(data.sensors)
+      setSensors(data.sensors || [])
       setAlertActive(data.alert_active)
+      setRealRain(data.real_rain_mm || 0)
       setIsOnline(true)
-    } catch {
-      // Fallback to mock data with realistic variation
+      setErrorMessage('')
+    } catch (error) {
       setIsOnline(false)
-      const mock = generateVariation(baseRef.current, isSpiking)
-      setSensors(mock)
-      setAlertActive(mock.some(s => s.status === 'critical'))
+      setSensors([])
+      setAlertActive(false)
+      setRealRain(0)
+      setErrorMessage(error.message || 'Unable to retrieve live sensor data')
     }
-  }, [isSpiking])
+  }, [])
 
   useEffect(() => {
-    fetchSensors()
+    setTimeout(() => fetchSensors(), 0)
     const interval = setInterval(fetchSensors, 3000)
     return () => clearInterval(interval)
   }, [fetchSensors])
@@ -94,13 +73,12 @@ function SensorPanel() {
 
   const resetSensors = async () => {
     setIsSpiking(false)
-    baseRef.current = MOCK_SENSORS
     try {
       const res = await fetch(`${API_BASE}/api/reset-sensors`, { method: 'POST' })
       if (!res.ok) throw new Error('API unavailable')
+      fetchSensors()
     } catch {
-      setSensors(generateVariation(MOCK_SENSORS))
-      setAlertActive(false)
+      setErrorMessage('Unable to reset simulation state')
     }
   }
 
@@ -109,8 +87,21 @@ function SensorPanel() {
       {/* Connection status */}
       <div className={`connection-status ${isOnline ? 'status--online' : 'status--mock'}`}>
         {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-        <span>{isOnline ? 'Live API Connected' : 'Local Simulation Mode'}</span>
+        <span>{isOnline ? 'Live Weather Sources Connected' : 'Live Weather Sources Unavailable'}</span>
       </div>
+
+      {!isOnline && errorMessage && (
+        <div className="chart-loading">
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      {realRain > 0 && (
+        <div className="real-rain-badge animate-bounce-slow">
+          <CloudRain size={14} />
+          <span>Real Rain: {realRain.toFixed(1)} mm/h</span>
+        </div>
+      )}
 
       <div className="sensor-controls">
         <button className={`control-btn ${isSpiking ? 'btn--active' : ''}`} onClick={triggerRain} disabled={isSpiking}>

@@ -1,24 +1,27 @@
-import { AlertTriangle, BarChart3, Bot, Settings2, CloudRain } from 'lucide-react'
+import { AlertTriangle, BarChart3, Bot, Settings2, CloudRain, Users } from 'lucide-react'
 import RiskPanel from './RiskPanel'
 import SensorPanel from './SensorPanel'
 import AIPanel from './AIPanel'
 import LayerControl from './LayerControl'
 import RunoffPanel from './RunoffPanel'
+import CommunityPanel from './CommunityPanel'
 import './Sidebar.css'
 
-const NAV_ITEMS = [
-  { id: 'risk', label: 'Risk Summary', icon: AlertTriangle },
-  { id: 'sensors', label: 'Sensor Network', icon: BarChart3 },
-  { id: 'simulation', label: 'Simulation', icon: CloudRain },
-  { id: 'ai', label: 'AI Insights', icon: Bot },
-  { id: 'layers', label: 'Layer Settings', icon: Settings2 },
+const getNavItems = (lang) => [
+  { id: 'risk', label: lang === 'en' ? 'Risk Summary' : 'Ebikwata ku Bulabe', icon: AlertTriangle },
+  { id: 'sensors', label: lang === 'en' ? 'Sensor Network' : 'Ebyuma ebipima', icon: BarChart3 },
+  { id: 'simulation', label: lang === 'en' ? 'Simulation' : 'Okugezesa enkuba', icon: CloudRain },
+  { id: 'community', label: lang === 'en' ? 'Community' : 'Abantu bakawefube', icon: Users },
+  { id: 'ai', label: lang === 'en' ? 'AI Insights' : 'Amagezi ga AI', icon: Bot },
+  { id: 'layers', label: lang === 'en' ? 'Layer Settings' : 'Entegeka ya Map', icon: Settings2 },
 ]
 
-function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, selectedFeature, onRunoffFrame, onSimulationState }) {
+function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, selectedFeature, onRunoffFrame, onSimulationState, lang, lowData, setLowData, isOfficial }) {
+  const navItems = getNavItems(lang)
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <button
             key={item.id}
             className={`nav-item ${activePanel === item.id ? 'nav-item--active' : ''}`}
@@ -33,11 +36,17 @@ function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, se
 
       <div className="sidebar-content">
         <header className="content-header">
-          <h2>{NAV_ITEMS.find((n) => n.id === activePanel)?.label}</h2>
+          <h2>{navItems.find((n) => n.id === activePanel)?.label}</h2>
         </header>
 
         <div className="panel-container">
-          {activePanel === 'risk' && <RiskPanel selectedFeature={selectedFeature} />}
+          {activePanel === 'risk' && (
+            <RiskPanel 
+              selectedFeature={selectedFeature} 
+              isOfficial={isOfficial} 
+              lang={lang} 
+            />
+          )}
           {activePanel === 'sensors' && <SensorPanel />}
           {activePanel === 'simulation' && (
             <RunoffPanel 
@@ -45,9 +54,15 @@ function Sidebar({ activePanel, setActivePanel, layerVisibility, toggleLayer, se
               onSimulationState={onSimulationState} 
             />
           )}
+          {activePanel === 'community' && <CommunityPanel />}
           {activePanel === 'ai' && <AIPanel selectedFeature={selectedFeature} />}
           {activePanel === 'layers' && (
-            <LayerControl layerVisibility={layerVisibility} toggleLayer={toggleLayer} />
+            <LayerControl 
+              layerVisibility={layerVisibility} 
+              toggleLayer={toggleLayer} 
+              lowData={lowData}
+              setLowData={setLowData}
+            />
           )}
         </div>
       </div>

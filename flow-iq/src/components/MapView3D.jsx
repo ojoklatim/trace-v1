@@ -1,5 +1,6 @@
 import { MapboxOverlay } from '@deck.gl/mapbox'
-import { GeoJsonLayer } from '@deck.gl/layers'
+import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers'
+import { HeatmapLayer } from '@deck.gl/aggregation-layers'
 import Map, { Source, Layer, useControl } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -9,13 +10,13 @@ import flowAccData from '../data/flow_accumulation.geojson'
 import riskData from '../data/risk_zones.geojson'
 import cvPointsData from '../data/drains_cv.geojson'
 
-// Bwaise centre
+// Greater Kampala center
 const INITIAL_VIEW_STATE = {
-  latitude: 0.34,
-  longitude: 32.59,
-  zoom: 14.5,
-  pitch: 60,
-  bearing: -15
+  latitude: 0.3476,
+  longitude: 32.5825,
+  zoom: 11.2,
+  pitch: 45,
+  bearing: 0
 }
 
 function DeckGLOverlay(props) {
@@ -24,7 +25,7 @@ function DeckGLOverlay(props) {
   return null
 }
 
-function MapView3D({ layerVisibility, onFeatureSelect, runoffGeoJson, runoffStats }) {
+function MapView3D({ layerVisibility, onFeatureSelect, runoffGeoJson, runoffStats, reports, lowData, isOfficial }) {
   const layers = [
     // Boundary Outline
     layerVisibility.boundary && new GeoJsonLayer({
@@ -120,6 +121,33 @@ function MapView3D({ layerVisibility, onFeatureSelect, runoffGeoJson, runoffStat
         getFillColor: 100,
       }
     }),
+
+    // Community Reports (Pins)
+    reports && reports.length > 0 && new ScatterplotLayer({
+      id: 'community-reports-layer',
+      data: reports.filter(d => d.location && typeof d.location.lng === 'number'),
+      getPosition: d => [d.location.lng, d.location.lat],
+      getFillColor: d => d.type === 'blockage' ? [239, 68, 68] : [249, 115, 22],
+      getRadius: 15,
+      radiusUnits: 'meters',
+      pickable: true,
+      onClick: info => {
+        if (info.object) {
+          alert(`Report: ${info.object.description}`);
+        }
+      }
+    }),
+
+    // Official Mode: Community Complaint Hotspots
+    isOfficial && reports && reports.length > 0 && new HeatmapLayer({
+      id: 'community-heatmap',
+      data: reports.filter(d => d.location && typeof d.location.lng === 'number'),
+      getPosition: d => [d.location.lng, d.location.lat],
+      getWeight: 1,
+      radiusPixels: 60,
+      intensity: 1,
+      threshold: 0.05
+    }),
   ].filter(Boolean)
 
   return (
@@ -128,7 +156,7 @@ function MapView3D({ layerVisibility, onFeatureSelect, runoffGeoJson, runoffStat
         initialViewState={INITIAL_VIEW_STATE}
         mapStyle="mapbox://styles/mapbox/satellite-v9"
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN} 
-        terrain={{ source: 'mapbox-dem', exaggeration: 4.0 }}
+        terrain={{ source: 'mapbox-dem', exaggeration: lowData ? 1.0 : 4.0 }}
       >
         <Source
           id="mapbox-dem"
@@ -137,20 +165,22 @@ function MapView3D({ layerVisibility, onFeatureSelect, runoffGeoJson, runoffStat
           tileSize={512}
           maxzoom={14}
         />
-        <Layer
-          id="3d-buildings"
-          source="composite"
-          source-layer="building"
-          filter={['==', 'extrude', 'true']}
-          type="fill-extrusion"
-          minzoom={15}
-          paint={{
-            'fill-extrusion-color': '#aaa',
-            'fill-extrusion-height': ['get', 'height'],
-            'fill-extrusion-base': ['get', 'min_height'],
-            'fill-extrusion-opacity': 0.6
-          }}
-        />
+        {!lowData && (
+          <Layer
+            id="3d-buildings"
+            source="composite"
+            source-layer="building"
+            filter={['==', 'extrude', 'true']}
+            type="fill-extrusion"
+            minzoom={15}
+            paint={{
+              'fill-extrusion-color': '#aaa',
+              'fill-extrusion-height': ['get', 'height'],
+              'fill-extrusion-base': ['get', 'min_height'],
+              'fill-extrusion-opacity': 0.6
+            }}
+          />
+        )}
         <DeckGLOverlay layers={layers} interleaved={true} />
       </Map>
       

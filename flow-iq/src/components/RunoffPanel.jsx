@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Play, Pause, RotateCcw, CloudRain, Gauge, Timer, Waves, Zap, ChevronDown } from 'lucide-react'
 import { parseDEM, computeFlowDirections, computeFlowAccumulation, runSimulation, frameToGeoJSON } from '../utils/runoffEngine'
 import demCsvRaw from '../data/dem.csv?raw'
@@ -63,7 +63,7 @@ function RunoffPanel({ onRunoffFrame, onSimulationState }) {
 
   // Parse DEM and precompute flow accumulation once
   useEffect(() => {
-    setStatus('computing')
+    setTimeout(() => setStatus('computing'), 0)
     const timer = setTimeout(() => {
       const grid = parseDEM(demCsvRaw)
       const flowDir = computeFlowDirections(grid)

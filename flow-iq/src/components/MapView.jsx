@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import { useState, useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, GeoJSON, useMap, CircleMarker, Tooltip } from 'react-leaflet'
 import { Layers, AlertCircle, Droplets, Target, Shield, Square } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -11,11 +11,11 @@ import flowAccData from '../data/flow_accumulation.geojson'
 import riskData from '../data/risk_zones.geojson'
 import cvPointsData from '../data/drains_cv.geojson'
 
-const CENTER = [0.34, 32.59]
-const ZOOM = 12
+const CENTER = [0.3476, 32.5825] // Greater Kampala center
+const ZOOM = 11.2
 
 const LAYER_CONFIG = [
-  { id: 'boundary', label: 'Boundary', sublabel: 'Bwaise boundary extent', color: '#94a3b8', icon: Square },
+  { id: 'boundary', label: 'Coverage Boundary', sublabel: 'Current analysis extent in Kampala', color: '#94a3b8', icon: Square },
   { id: 'drains', label: 'Infrastructure', sublabel: 'Existing OSM drains', color: '#0ea5e9', icon: Shield },
   { id: 'cvPoints', label: 'Field Evidence', sublabel: 'CV-detected drains', color: '#eab308', icon: Target },
   { id: 'flowAcc', label: 'Hydrology', sublabel: 'Flow accumulation', color: '#6366f1', icon: Droplets },
@@ -114,7 +114,7 @@ function RunoffBadge({ stats }) {
   )
 }
 
-function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme, runoffGeoJson, runoffStats }) {
+function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme, runoffGeoJson, runoffStats, reports }) {
   const basemapUrl = theme === 'dark' 
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
@@ -157,6 +157,27 @@ function MapView({ layerVisibility, toggleLayer, onFeatureSelect, theme, runoffG
             pointToLayer={(f, latlng) => L.circleMarker(latlng, { radius: 5, fillColor: '#eab308', color: '#a16207', weight: 1, fillOpacity: 0.9 })} 
           />
         )}
+
+        {/* Community Reports */}
+        {reports && reports.map(report => {
+          if (!report.location || typeof report.location.lat !== 'number') return null;
+          return (
+            <CircleMarker 
+              key={report.id} 
+              center={[report.location.lat, report.location.lng]} 
+              radius={8}
+              fillColor={report.type === 'blockage' ? '#ef4444' : '#f97316'}
+              color="#fff"
+              weight={2}
+              fillOpacity={0.8}
+            >
+              <Tooltip>
+                <strong>{report.type?.toUpperCase()}</strong><br/>
+                {report.description}
+              </Tooltip>
+            </CircleMarker>
+          );
+        })}
 
         {/* Runoff simulation overlay */}
         <RunoffLayer data={runoffGeoJson} />

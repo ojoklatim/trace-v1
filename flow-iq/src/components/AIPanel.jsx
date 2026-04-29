@@ -3,25 +3,24 @@ import axios from 'axios'
 import { Cpu, ClipboardCheck, Construction, BookOpen, UserCheck, Loader2 } from 'lucide-react'
 import './AIPanel.css'
 
-const FALLBACKS = {
-  "Bwaise NW-012": "I recommend installing a 900mm diameter reinforced concrete pipe (RCP) culvert at this junction. The flow accumulation of 4200 units indicates a significant catchment area. Connect to the primary drain on the main road.",
-  "Bwaise SE-045": "Install a 1200mm box culvert. This area is critically low-lying (3.4m below surrounding grade). The 150m gap to the nearest drain is the primary cause of localized pooling.",
-}
-
 function AIPanel({ selectedFeature }) {
   const [recommendation, setRecommendation] = useState(null)
+  const [modelName, setModelName] = useState('AI Model')
   const [loading, setLoading] = useState(false)
+  const [actionStatus, setActionStatus] = useState('')
 
   const getAIRecommendation = async (feature) => {
     setLoading(true)
-    const { risk_score, elevation, dist_drain, flow_acc } = feature
+    setActionStatus('')
     try {
-      await new Promise(r => setTimeout(r, 1500))
-      const locKey = `Bwaise ${elevation > 0.35 ? 'NW' : 'SE'}-${Math.floor(risk_score * 100)}`
-      const text = FALLBACKS[locKey] || `ANALYSIS REPORT: Cell risk rating ${risk_score.toFixed(2)} requires a ${(flow_acc / 1000).toFixed(1)}m diameter extension based on local catchment geometry.`
-      setRecommendation(text)
+      const response = await axios.post('/api/recommendation', feature)
+      setRecommendation(response.data.recommendation)
+      setModelName(response.data.model || 'AI Model')
     } catch (e) {
-      setRecommendation("Service connection unavailable.")
+      console.error("AI Error:", e)
+      const serverMessage = e?.response?.data?.error
+      setRecommendation(null)
+      setActionStatus(serverMessage || 'AI insights are currently unavailable.')
     } finally {
       setLoading(false)
     }
@@ -31,12 +30,36 @@ function AIPanel({ selectedFeature }) {
     if (selectedFeature) getAIRecommendation(selectedFeature)
   }, [selectedFeature])
 
+  const handleCopySpec = async () => {
+    if (!recommendation) return
+    try {
+      await navigator.clipboard.writeText(recommendation)
+      setActionStatus('Recommendation copied to clipboard.')
+    } catch {
+      setActionStatus('Clipboard permission denied.')
+    }
+  }
+
+  const handleCreateOrder = async () => {
+    if (!recommendation || !selectedFeature) return
+    try {
+      const response = await axios.post('/api/work-orders', {
+        recommendation,
+        feature: selectedFeature,
+      })
+      const orderId = response?.data?.order?.id
+      setActionStatus(orderId ? `Work order ${orderId} created.` : 'Work order created.')
+    } catch (e) {
+      setActionStatus(e?.response?.data?.error || 'Unable to create work order.')
+    }
+  }
+
   return (
     <div className="ai-panel">
       <div className="ai-header-bar">
         <span className="ai-model-badge">
           <div className="ai-dot"></div>
-          ENGINEERING ASSISTANT v4
+          {modelName}
         </span>
       </div>
 
@@ -60,6 +83,10 @@ function AIPanel({ selectedFeature }) {
                 <Loader2 size={24} className="animate-spin" />
                 <span>Analyzing topological constraints...</span>
               </div>
+            ) : !recommendation ? (
+              <div className="ai-loading">
+                <span>{actionStatus || 'No recommendation available for this cell.'}</span>
+              </div>
             ) : (
               <div className="ai-text-box">
                 <div className="engineer-header">
@@ -73,17 +100,18 @@ function AIPanel({ selectedFeature }) {
                 </div>
                 <p className="recommendation-text">"{recommendation}"</p>
                 <div className="action-footer">
-                  <button className="action-btn">
+                  <button className="action-btn" onClick={handleCopySpec}>
                     <ClipboardCheck size={14} />
                     <span>Copy Spec</span>
                   </button>
-                  <button className="action-btn btn-primary">
+                  <button className="action-btn btn-primary" onClick={handleCreateOrder}>
                     <Construction size={14} />
                     <span>Create Order</span>
                   </button>
                 </div>
               </div>
             )}
+            {actionStatus && !loading && <p className="empty-msg">{actionStatus}</p>}
           </div>
         )}
       </div>
